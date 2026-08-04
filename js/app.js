@@ -80,6 +80,7 @@
   const SETTINGS_KEY = "nickgen.settings";
 
   const wordlistCache = {};
+  let lastWords = null;
 
   async function fetchRealList(id) {
     if (wordlistCache[id]) return wordlistCache[id];
@@ -232,8 +233,17 @@
     });
   }
 
-  wireChipRow(delimiterRow, (value) => { state.delimiter = value; saveSettings(); });
-  wireChipRow(caseRow, (value) => { state.case = value; saveSettings(); });
+  wireChipRow(delimiterRow, (value) => {
+    state.delimiter = value;
+    saveSettings();
+    applyLiveFormatting();
+  });
+
+  wireChipRow(caseRow, (value) => {
+    state.case = value;
+    saveSettings();
+    applyLiveFormatting({ recase: true });
+  });
 
   function syncChipHighlight(row, value) {
     row.querySelectorAll(".chip").forEach((chip) => {
@@ -292,6 +302,17 @@
     window.setTimeout(() => {
       setNicknameText(nickname);
     }, 90); // swap text at the midpoint of the flip animation
+  }
+
+  function applyLiveFormatting({ recase = false } = {}) {
+    if (!lastWords) return;
+
+    if (recase) {
+      lastWords = CASE_METHODS[state.case](lastWords);
+    }
+
+    const nickname = lastWords.join(state.delimiter);
+    setNicknameText(nickname);
   }
 
   // Copy to clipboard
@@ -395,6 +416,7 @@
 
       const rawWords = pickWords(pool, state.words);
       const words = CASE_METHODS[state.case](rawWords);
+      lastWords = words;
       const nickname = words.join(state.delimiter);
 
       animateToNickname(nickname);
