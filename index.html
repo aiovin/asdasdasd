@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>asdasdasd</title>
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="page">
+
+  <header class="masthead">
+    <span class="eyebrow">passphrase / password / nickname generator · no more asdasdasd</span>
+  </header>
+
+  <main class="console" aria-label="xkcdpass generator">
+
+    <section class="control-panel primary" aria-label="Main settings">
+
+      <div class="control" data-control="words">
+        <span class="control-label">Words</span>
+        <div class="stepper">
+          <button type="button" class="step-btn" id="words-dec" aria-label="Fewer words">&minus;</button>
+          <output id="words-value" aria-live="polite">3</output>
+          <button type="button" class="step-btn" id="words-inc" aria-label="More words">+</button>
+        </div>
+      </div>
+
+      <div class="control" data-control="delimiter">
+        <span class="control-label">Delimiter</span>
+        <div class="chip-row" id="delimiter-row" role="radiogroup" aria-label="Delimiter">
+          <button class="chip" data-value="-" type="button">&minus;</button>
+          <button class="chip" data-value="_" type="button">_</button>
+          <button class="chip" data-value="." type="button">.</button>
+          <button class="chip" data-value=" " type="button">space</button>
+          <button class="chip" data-value="" type="button">none</button>
+        </div>
+      </div>
+
+      <div class="control" data-control="case">
+        <span class="control-label">Case</span>
+        <div class="chip-row" id="case-row" role="radiogroup" aria-label="Case">
+          <button class="chip" data-value="capitalize" type="button">Capitalize</button>
+          <button class="chip" data-value="lower" type="button">lower</button>
+          <button class="chip" data-value="upper" type="button">UPPER</button>
+          <button class="chip" data-value="alternating" type="button">aLtErNaTe</button>
+          <button class="chip" data-value="random" type="button">RaNdOM</button>
+        </div>
+      </div>
+
+    </section>
+
+    <script>
+      (function () {
+        // Sets the correct "active" chip before first paint
+        // Also change the "state" constant in the app.js, if the DEFAULTS values are changed here
+        var DEFAULTS = { delimiter: " ", case: "lower" };
+        var saved = {};
+        try {
+          saved = JSON.parse(localStorage.getItem("nickgen.settings")) || {};
+        } catch (e) {}
+        var delimiter = typeof saved.delimiter === "string" ? saved.delimiter : DEFAULTS.delimiter;
+        var caseValue = typeof saved.case === "string" ? saved.case : DEFAULTS.case;
+
+        function highlight(rowId, value) {
+          var row = document.getElementById(rowId);
+          if (!row) return;
+          var chips = row.querySelectorAll(".chip");
+          for (var i = 0; i < chips.length; i++) {
+            chips[i].classList.toggle("is-active", chips[i].dataset.value === value);
+          }
+        }
+        highlight("delimiter-row", delimiter);
+        highlight("case-row", caseValue);
+      })();
+    </script>
+
+    <div class="nickname-wrap">
+      <div class="nickname-field" id="nickname-field">
+        <span id="nickname-text">&mdash;</span>
+      </div>
+      <button type="button" class="copy-btn" id="copy-btn" aria-label="Copy to clipboard" title="Copy">
+        <span id="copy-icon">&#128203;</span>
+      </button>
+    </div>
+
+    <p class="error-msg" id="error-msg" role="alert" hidden></p>
+
+    <button type="button" class="generate-btn" id="generate-btn">
+      <span class="btn-icon" aria-hidden="true">&#8635;</span>
+      Generate
+    </button>
+    <p class="hint">or press <kbd>Enter</kbd> / <kbd>spase</kbd></p>
+
+    <button type="button" class="control-toggle" id="advanced-toggle" aria-expanded="false" aria-controls="advanced-panel">
+      Advanced settings <span class="chevron">▾</span>
+    </button>
+
+    <div class="advanced-panel" id="advanced-panel" hidden>
+      <div class="control" data-control="wordlist">
+        <span class="control-label">Wordlist</span>
+        <select id="wordlist-select" aria-describedby="wordlist-desc"></select>
+        <p class="wordlist-desc" id="wordlist-desc"></p>
+      </div>
+      <div class="control-row">
+        <div class="control">
+          <label class="control-label" for="min-len">Min char</label>
+          <input type="number" id="min-len" min="1" max="25" value="4">
+        </div>
+        <div class="control">
+          <label class="control-label" for="max-len">Max char</label>
+          <input type="number" id="max-len" min="1" max="25" value="8">
+        </div>
+      </div>
+    </div>
+
+    <section class="recent" aria-label="Recent list">
+      <span class="recent-label">Recent:</span>
+      <div class="recent-list" id="recent-list"></div>
+    </section>
+
+  </main>
+
+  <footer class="credit">
+    Based on <a href="https://github.com/redacted/XKCD-password-generator" target="_blank" rel="noopener">xkcdpass</a>
+  </footer>
+
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>

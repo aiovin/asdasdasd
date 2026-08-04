@@ -1,0 +1,24 @@
+{
+  "wordlists": [
+    {
+      "file": "eff-long.txt",
+      "label": "EFF long list",
+      "description": "7,776 words, mostly 3–9 letters. The standard xkcdpass wordlist."
+    },
+    {
+      "file": "eff-short.txt",
+      "label": "EFF short list",
+      "description": "1,296 short words, 3–5 letters."
+    },
+    {
+      "file": "eff-special.txt",
+      "label": "EFF special characters list",
+      "description": "1,296 words chosen to be easy to type and pronounce."
+    },
+    {
+      "file": "legacy.txt",
+      "label": "Legacy /usr/share/dict list",
+      "description": "65k+ words from the classic dictionary. The widest variety."
+    }
+  ]
+}
