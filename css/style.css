@@ -369,6 +369,35 @@ select:focus-visible {
   max-width: 420px;
 }
 
+.entropy-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.entropy-toggle input {
+  accent-color: var(--teal);
+  width: 15px;
+  height: 15px;
+  margin: 0;
+}
+
+.entropy-toggle:hover {
+  color: #f2ede2;
+}
+
+.entropy-msg {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted-dim);
+  margin: -6px 0 0;
+  text-align: center;
+}
+
 .advanced-panel input[type="number"] {
   width: 62px;
   font-family: var(--font-mono);

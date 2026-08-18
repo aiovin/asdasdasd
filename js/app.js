@@ -35,6 +35,38 @@
     return { catalog, ids };
   }
 
+  function randomInt(max) {
+    if (!Number.isSafeInteger(max) || max <= 0) {
+      throw new Error("Invalid random range");
+    }
+
+    if (!globalThis.crypto?.getRandomValues) {
+      throw new Error("Web Crypto API is not available");
+    }
+
+    const limit = Math.floor(0x100000000 / max) * max;
+    const array = new Uint32Array(1);
+
+    let value;
+
+    do {
+      globalThis.crypto.getRandomValues(array);
+      value = array[0];
+    } while (value >= limit);
+
+    return value % max;
+  }
+
+  function pickWords(pool, n) {
+    const out = [];
+
+    for (let i = 0; i < n; i++) {
+      out.push(pool[randomInt(pool.length)]);
+    }
+
+    return out;
+  }
+
   // Case functions - mirror xkcdpass.xkcd_password.CASE_METHODS
   const CASE_METHODS = {
     "as-is": (words) => words,
@@ -56,7 +88,7 @@
       words.map((w) =>
         [...w]
           .map((ch) =>
-            Math.random() < 0.5 ? ch.toUpperCase() : ch.toLowerCase()
+            randomInt(2) === 0 ? ch.toUpperCase() : ch.toLowerCase()
           )
           .join("")
       ),
@@ -71,6 +103,7 @@
     min: 3,
     max: 9,
     advancedOpen: false,
+    showEntropy: false,
   };
 
   const MIN_WORDS = 2;
@@ -81,6 +114,7 @@
 
   const wordlistCache = {};
   let lastWords = null;
+  let lastPoolSize = null;
 
   async function fetchRealList(id) {
     if (wordlistCache[id]) return wordlistCache[id];
@@ -138,6 +172,9 @@
     if (typeof raw.advancedOpen === "boolean") {
       state.advancedOpen = raw.advancedOpen;
     }
+    if (typeof raw.showEntropy === "boolean") {
+      state.showEntropy = raw.showEntropy;
+    }
   }
 
   function saveSettings() {
@@ -152,6 +189,7 @@
           min: state.min,
           max: state.max,
           advancedOpen: state.advancedOpen,
+          showEntropy: state.showEntropy,
         })
       );
     } catch {
@@ -183,6 +221,8 @@
   const errorMsg = $("#error-msg");
   const generateBtn = $("#generate-btn");
   const recentList = $("#recent-list");
+  const showEntropyInput = $("#show-entropy");
+  const entropyMsg = $("#entropy-msg");
 
   // Wordlist select
   function populateWordlistSelect() {
@@ -274,6 +314,17 @@
     state.max = clampInt(maxLenInput.value, 1, 25, state.max);
     maxLenInput.value = state.max;
     saveSettings();
+  });
+
+  showEntropyInput.addEventListener("change", () => {
+    state.showEntropy = showEntropyInput.checked;
+    saveSettings();
+
+    if (state.showEntropy && lastPoolSize !== null) {
+      updateEntropy(lastPoolSize);
+    } else {
+      entropyMsg.hidden = true;
+    }
   });
 
   function clampInt(raw, low, high, fallback) {
@@ -388,12 +439,19 @@
     errorMsg.textContent = "";
   }
 
-  function pickWords(pool, n) {
-    const out = [];
-    for (let i = 0; i < n; i++) {
-      out.push(pool[Math.floor(Math.random() * pool.length)]);
+  function calculateEntropy(poolSize, wordCount) {
+    return wordCount * Math.log2(poolSize);
+  }
+
+  function updateEntropy(poolSize) {
+    if (!state.showEntropy) {
+      entropyMsg.hidden = true;
+      return;
     }
-    return out;
+
+    const entropy = calculateEntropy(poolSize, state.words);
+    entropyMsg.textContent = `Entropy: ${entropy.toFixed(1)} bits`;
+    entropyMsg.hidden = false;
   }
 
   async function generate() {
@@ -413,6 +471,9 @@
         );
         return;
       }
+
+      lastPoolSize = pool.length;
+      updateEntropy(lastPoolSize);
 
       const rawWords = pickWords(pool, state.words);
       const words = CASE_METHODS[state.case](rawWords);
@@ -481,6 +542,7 @@
     syncChipHighlight(caseRow, state.case);
     minLenInput.value = state.min;
     maxLenInput.value = state.max;
+    showEntropyInput.checked = state.showEntropy;
     setAdvancedOpen(state.advancedOpen);
     renderRecent(loadRecent());
     generate();

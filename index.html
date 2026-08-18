@@ -90,6 +90,8 @@
       </button>
     </div>
 
+    <p class="entropy-msg" id="entropy-msg" hidden></p>
+
     <p class="error-msg" id="error-msg" role="alert" hidden></p>
 
     <button type="button" class="generate-btn" id="generate-btn">
@@ -118,6 +120,10 @@
           <input type="number" id="max-len" min="1" max="25" value="8">
         </div>
       </div>
+      <label class="entropy-toggle">
+        <input type="checkbox" id="show-entropy">
+        <span>Show password entropy</span>
+      </label>
     </div>
 
     <section class="recent" aria-label="Recent list">
@@ -136,3 +142,4 @@
 <script src="js/app.js"></script>
 </body>
 </html>
+
