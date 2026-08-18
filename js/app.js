@@ -103,7 +103,8 @@
     min: 3,
     max: 9,
     advancedOpen: false,
-    showEntropy: false,
+    showEntropy: true,
+    saveHistory: true,
   };
 
   const MIN_WORDS = 2;
@@ -175,6 +176,9 @@
     if (typeof raw.showEntropy === "boolean") {
       state.showEntropy = raw.showEntropy;
     }
+    if (typeof raw.saveHistory === "boolean") {
+      state.saveHistory = raw.saveHistory;
+    }
   }
 
   function saveSettings() {
@@ -190,6 +194,7 @@
           max: state.max,
           advancedOpen: state.advancedOpen,
           showEntropy: state.showEntropy,
+          saveHistory: state.saveHistory,
         })
       );
     } catch {
@@ -222,6 +227,7 @@
   const generateBtn = $("#generate-btn");
   const recentList = $("#recent-list");
   const showEntropyInput = $("#show-entropy");
+  const saveHistoryInput = $("#save-history-toggle");
   const entropyMsg = $("#entropy-msg");
 
   // Wordlist select
@@ -342,6 +348,20 @@
     }
   });
 
+  saveHistoryInput.addEventListener("change", () => {
+    state.saveHistory = saveHistoryInput.checked;
+    saveSettings();
+
+    if (!state.saveHistory) {
+      try {
+        localStorage.removeItem(RECENT_KEY);
+      } catch {
+        // storage unavailable - ignore
+      }
+      renderRecent([]);
+    }
+  });
+
   function clampInt(raw, low, high, fallback) {
     const n = parseInt(raw, 10);
     if (Number.isNaN(n)) return fallback;
@@ -424,6 +444,8 @@
   }
 
   function pushRecent(nickname, words, poolSize, caseMode) {
+    if (!state.saveHistory) return;
+
     let list = loadRecent().filter((entry) => entry.nickname !== nickname);
     list.unshift({ nickname, words, poolSize, caseMode });
     list = list.slice(0, RECENT_LIMIT);
@@ -578,6 +600,7 @@
     minLenInput.value = state.min;
     maxLenInput.value = state.max;
     showEntropyInput.checked = state.showEntropy;
+    saveHistoryInput.checked = state.saveHistory;
     setAdvancedOpen(state.advancedOpen);
     renderRecent(loadRecent());
     generate();
