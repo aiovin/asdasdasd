@@ -233,7 +233,7 @@
       if (!wl) continue;
       const opt = document.createElement("option");
       opt.value = wl.id;
-      opt.textContent = wl.count ? `${wl.label} (${wl.count.toLocaleString("ru-RU")})` : wl.label;
+      opt.textContent = wl.count ? `${wl.label} (${wl.count.toLocaleString()})` : wl.label;
       if (wl.id === state.wordlist) opt.selected = true;
       wordlistSelect.appendChild(opt);
     }
@@ -283,6 +283,10 @@
     state.case = value;
     saveSettings();
     applyLiveFormatting({ recase: true });
+
+    if (lastPoolSize !== null && lastWords) {
+      updateEntropy(lastPoolSize, lastWords);
+    }
   });
 
   function syncChipHighlight(row, value) {
@@ -292,6 +296,17 @@
   }
 
   // Advanced settings
+  function updateEntropy(poolSize, words, caseMode = state.case) {
+    if (!state.showEntropy) {
+      entropyMsg.hidden = true;
+      return;
+    }
+
+    const entropy = calculateEntropy(poolSize, words, caseMode);
+    entropyMsg.textContent = `Entropy: ${entropy.toFixed(1)} bits`;
+    entropyMsg.hidden = false;
+  }
+
   function setAdvancedOpen(open) {
     state.advancedOpen = open;
     advancedToggle.setAttribute("aria-expanded", String(open));
@@ -320,8 +335,8 @@
     state.showEntropy = showEntropyInput.checked;
     saveSettings();
 
-    if (state.showEntropy && lastPoolSize !== null) {
-      updateEntropy(lastPoolSize);
+    if (state.showEntropy && lastPoolSize !== null && lastWords) {
+      updateEntropy(lastPoolSize, lastWords);
     } else {
       entropyMsg.hidden = true;
     }
@@ -385,11 +400,19 @@
 
   // Recent history (localStorage)
   function loadRecent() {
+    let list;
     try {
-      return JSON.parse(localStorage.getItem(RECENT_KEY)) || [];
+      list = JSON.parse(localStorage.getItem(RECENT_KEY)) || [];
     } catch {
       return [];
     }
+
+    if (!Array.isArray(list)) return [];
+
+    // in the case of the old format (array of strings)
+    return list.map((entry) =>
+      typeof entry === "string" ? { nickname: entry, words: null, poolSize: null } : entry
+    );
   }
 
   function saveRecent(list) {
@@ -400,9 +423,9 @@
     }
   }
 
-  function pushRecent(nickname) {
-    let list = loadRecent().filter((n) => n !== nickname);
-    list.unshift(nickname);
+  function pushRecent(nickname, words, poolSize, caseMode) {
+    let list = loadRecent().filter((entry) => entry.nickname !== nickname);
+    list.unshift({ nickname, words, poolSize, caseMode });
     list = list.slice(0, RECENT_LIMIT);
     saveRecent(list);
     renderRecent(list);
@@ -415,14 +438,22 @@
       return;
     }
     recentList.parentElement.hidden = false;
-    for (const nickname of list) {
+    for (const entry of list) {
       const chip = document.createElement("button");
       chip.type = "button";
       chip.className = "recent-chip";
-      chip.textContent = nickname;
+      chip.textContent = entry.nickname;
       chip.title = "Show in field";
       chip.addEventListener("click", () => {
-        animateToNickname(nickname);
+        animateToNickname(entry.nickname);
+
+        if (entry.words && entry.poolSize) {
+          lastWords = entry.words;
+          lastPoolSize = entry.poolSize;
+          updateEntropy(entry.poolSize, entry.words, entry.caseMode ?? state.case);
+        } else {
+          entropyMsg.hidden = true;
+        }
       });
       recentList.appendChild(chip);
     }
@@ -439,19 +470,23 @@
     errorMsg.textContent = "";
   }
 
-  function calculateEntropy(poolSize, wordCount) {
-    return wordCount * Math.log2(poolSize);
-  }
+  function calculateEntropy(poolSize, words, caseMode) {
+    let entropy = words.length * Math.log2(poolSize);
 
-  function updateEntropy(poolSize) {
-    if (!state.showEntropy) {
-      entropyMsg.hidden = true;
-      return;
+    if (caseMode === "random") {
+      for (const word of words) {
+        for (const ch of word) {
+          const lower = ch.toLowerCase();
+          const upper = ch.toUpperCase();
+
+          if (lower !== upper) {
+            entropy += 1;
+          }
+        }
+      }
     }
 
-    const entropy = calculateEntropy(poolSize, state.words);
-    entropyMsg.textContent = `Entropy: ${entropy.toFixed(1)} bits`;
-    entropyMsg.hidden = false;
+    return entropy;
   }
 
   async function generate() {
@@ -473,15 +508,15 @@
       }
 
       lastPoolSize = pool.length;
-      updateEntropy(lastPoolSize);
 
       const rawWords = pickWords(pool, state.words);
+      updateEntropy(pool.length, rawWords);
       const words = CASE_METHODS[state.case](rawWords);
       lastWords = words;
       const nickname = words.join(state.delimiter);
 
       animateToNickname(nickname);
-      pushRecent(nickname);
+      pushRecent(nickname, words, pool.length, state.case);
     } catch (err) {
       showError(err.message || "Something went wrong when loading the wordlist.");
     } finally {
